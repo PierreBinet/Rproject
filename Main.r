@@ -2,17 +2,21 @@ library(ggplot2)
 library(plyr)
 library(dplyr)
 
-df = read.csv("~/Documents/5A/R/Rproject/starbucks.csv", sep=",")
+storeLocations = read.csv("~/Documents/5A/R/Rproject/starbucks.csv", sep=",")
 countryCodes = read.csv("~/Documents/5A/R/Rproject/country_codes.csv", sep=",")
+countryData = read.csv("~/Documents/5A/R/Rproject/country_data.csv", sep=",")
 
-storeLocations <- df
+#adding country codes to the countryData dataset
+names(countryCodes)[names(countryCodes) == "Name"] <- "Country"
+countryData$Code <- countryCodes$Code[match(countryData$Country, countryCodes$Country)]
+countryData.df <- dplyr::inner_join(countryData, countryCodes, by=Country)
 
 #Extrait un classement des pays ainsi qu'un top 5
 countriesByNumberOfStores = ddply(storeLocations, .(Country), function(x)nrow(x))
 countriesByNumberOfStores = countriesByNumberOfStores[with(countriesByNumberOfStores, order(-V1)),]              #ordonne par nombre de magasin ascendant
 Top5Countries_code = head(countriesByNumberOfStores, 5)                                                               # on recupere le top 5
-countryCode_vector = match (Top5Countries_code$Country, countryCodes$Code)                                            #on prend leur nom de pays
-Top5Countries <- data.frame(Country = countryCodes[countryCode_vector,1], NumberOfStores = Top5Countries_code[,2])
+countryCode_vector = match (Top5Countries_code$Country, countryData$Code)                                            #on prend leur nom de pays
+Top5Countries <- data.frame(Country = countryData[countryCode_vector,1], NumberOfStores = Top5Countries_code[,2])
 
 ggplot(Top5Countries) +
   guides(fill=FALSE) +
@@ -22,6 +26,12 @@ ggplot(Top5Countries) +
 
 ###Ligne permettant d'extraire uniquement les données des 5 pays mais avec toutes les colonnes###
 Top5CountriesFullData =storeLocations[which(storeLocations$Country %in% Top5Countries_code$Country),] 
+
+
+
+#
+countriesByNumberOfStores
+countryCode_vector = match (countriesByNumberOfStores$Country, countryData$Code)    
 
 #Extrait un classement des villes ainsi qu'un top 5
 citiesByNumberOfStores = ddply(storeLocations, .(City), function(x)nrow(x))
@@ -34,6 +44,7 @@ ggplot(Top5Cities) +
   guides(fill=FALSE) +
   ggtitle("Top Five Cities with the most Starbucks Stores") +
   ylab("Number of Stores")
+
 
 #Extrait les types de Ownerships
 numberTypesOfOwnership = ddply(storeLocations,.(Ownership.Type),function(x)nrow(x))
@@ -53,8 +64,8 @@ ggplot(numberTypesOfOwnership, aes(x="",y=NumberOfStores, fill=Ownership_Type))+
 
 #Extrait les types de Ownership par pays du top 5
 OwnTypeTop5Countries  = count(Top5CountriesFullData, Country, Ownership.Type)
-countryCode_vector = match(OwnTypeTop5Countries$Country, countryCodes$Code)                                           
-OwnTypeTop5Countries = data.frame(Country=countryCodes[countryCode_vector,1],
+countryCode_vector = match(OwnTypeTop5Countries$Country, countryData$Code)                                           
+OwnTypeTop5Countries = data.frame(Country=countryData[countryCode_vector,1],
                                   Ownership_Type=OwnTypeTop5Countries[,2],
                                   Amount=OwnTypeTop5Countries[,3])
 ####Pour une raison X ou Y la ligne au-dessus refuse de s'executer automatiquement donc faut toujours le faire à la main
@@ -69,3 +80,5 @@ ggplot(OwnTypeTop5Countries, aes(x ="", y=Amount, fill=Ownership_Type)) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid  = element_blank())
+
+
