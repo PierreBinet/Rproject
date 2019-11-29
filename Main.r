@@ -2,9 +2,15 @@ library(ggplot2)
 library(plyr)
 library(dplyr)
 
+df = read.csv("~/Documents/5A/R/Rproject/starbucks.csv", sep=",")
+countryCodes = read.csv("~/Documents/5A/R/Rproject/country_codes.csv", sep=",")
 
-storeLocations = read.csv("./starbucks.csv", sep=",")
-countryCodes = read.csv("./country_codes.csv", sep=",")
+#prétraitement: _Les noms des villes chinoises sont écrits en chinois 
+#                 (par soucis de compréhension par tous nous les écrivont en alphabet latin)
+#_Les quartiers de la ville de Tokyo remplacent le nom de la vile dans la colonne City, la faisant disparaitre des tops suivants
+df[df$City=="Shinjuku-ku" | "Shibuya-ku"]<-"Tokyo"
+
+storeLocations <- df
 
 #Extrait un classement des pays ainsi qu'un top 5
 countriesByNumberOfStores = ddply(storeLocations, .(Country), function(x)nrow(x))
