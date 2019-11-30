@@ -7,9 +7,9 @@ countryCodes = read.csv("~/Documents/5A/R/Rproject/country_codes.csv", sep=",")
 countryData = read.csv("~/Documents/5A/R/Rproject/country_data.csv", sep=",")
 
 #adding country codes to the countryData dataset
-names(countryCodes)[names(countryCodes) == "Name"] <- "Country"
-countryData$Code <- countryCodes$Code[match(countryData$Country, countryCodes$Country)]
-countryData.df <- dplyr::inner_join(countryData, countryCodes, by=Country)
+countryData$Country <- trimws(countryData$Country)
+countryData = merge(countryData, countryCodes, by.x="Country", by.y="Name", all.x=TRUE)
+
 
 #Extrait un classement des pays ainsi qu'un top 5
 countriesByNumberOfStores = ddply(storeLocations, .(Country), function(x)nrow(x))
@@ -28,10 +28,8 @@ ggplot(Top5Countries) +
 Top5CountriesFullData =storeLocations[which(storeLocations$Country %in% Top5Countries_code$Country),] 
 
 
+#numberOfStoreByGDP
 
-#
-countriesByNumberOfStores
-countryCode_vector = match (countriesByNumberOfStores$Country, countryData$Code)    
 
 #Extrait un classement des villes ainsi qu'un top 5
 citiesByNumberOfStores = ddply(storeLocations, .(City), function(x)nrow(x))
