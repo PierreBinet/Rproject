@@ -9,4 +9,3 @@ Packages to install on RStudio :
 - reshape
 - geosphere
 - maps
-6,340 km²
