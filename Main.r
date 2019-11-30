@@ -80,3 +80,11 @@ ggplot(OwnTypeTop5Countries, aes(x ="", y=Amount, fill=Ownership_Type)) +
         panel.grid  = element_blank())
 
 
+#Calcule la distance moyenne entre les Starbucks
+library(geosphere)
+
+test = data.frame(StoreNumber= Top5CountriesFullData$Store.Number, Country = Top5CountriesFullData$Country, Latitude=Top5CountriesFullData$Latitude,Longitude=Top5CountriesFullData$Longitude)
+test$ZZZ = 1
+test %>% full_join(test,c("ZZZ"="ZZZ")) %>% 
+  filter(Country.x == Country.y && StoreNumber.x != StoreNumber.x) %>% 
+  mutate(dist=distm(c(Longitude.x, Latitude.x), c(Longitude.y, Latitude.y), fun = distHaversine))
