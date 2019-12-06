@@ -11,16 +11,18 @@ storeLocations = read.csv("./starbucks.csv", sep=",")
 countryCodes = read.csv("./country_codes.csv", sep=",")
 countryData = read.csv("./country_data.csv", sep=",")
 
+
 #adding country codes to the countryData dataset
 countryData$Country <- trimws(countryData$Country)
 countryData = merge(countryData, countryCodes, by.x="Country", by.y="Name", all.x=TRUE)
 
+
 #################################################################################################################################################
 #Extrait un classement des pays ainsi qu'un top 5
 countriesByNumberOfStores = ddply(storeLocations, .(Country), function(x)nrow(x))
-countriesByNumberOfStores = countriesByNumberOfStores[with(countriesByNumberOfStores, order(-V1)),]              #ordonne par nombre de magasin ascendant
-Top5Countries_code = head(countriesByNumberOfStores, 5)                                                               # on recupere le top 5
-countryCode_vector = match (Top5Countries_code$Country, countryData$Code)                                            #on prend leur nom de pays
+countriesByNumberOfStores = countriesByNumberOfStores[with(countriesByNumberOfStores, order(-V1)),]       #ordonne par nombre de magasin ascendant
+Top5Countries_code = head(countriesByNumberOfStores, 5)                                                   # on recupere le top 5
+countryCode_vector = match (Top5Countries_code$Country, countryData$Code)                                 #on prend leur nom de pays
 Top5Countries <- data.frame(Country = countryData[countryCode_vector,1], NumberOfStores = Top5Countries_code[,2])
 
 ggplot(Top5Countries) +
@@ -30,7 +32,9 @@ ggplot(Top5Countries) +
   ylab("Number of Stores")
 
 ###Ligne permettant d'extraire uniquement les données des 5 pays mais avec toutes les colonnes###
-Top5CountriesFullData =storeLocations[which(storeLocations$Country %in% Top5Countries_code$Country),] 
+Top5CountriesFullData =storeLocations[which(storeLocations$Country %in% Top5Countries_code$Country),]
+
+
 #################################################################################################################################################
 #Extrait un classement des villes ainsi qu'un top 5
 citiesByNumberOfStores = ddply(storeLocations, .(City,Country,State.Province), function(x)nrow(x))
@@ -46,9 +50,53 @@ ggplot(Top5Cities) +
 
 ###Ligne permettant d'extraire uniquement les données des 5 villes mais avec toutes les colonnes###
 Top5CitiesFullData =storeLocations[which((storeLocations$City %in% Top5Cities$City) & (storeLocations$Country %in% Top5Cities$Country) & (storeLocations$State.Province %in% Top5Cities$Province)) ,]
-#################################################################################################################################################
-#numberOfStoreByGDP
 
+
+#################################################################################################################################################
+#computes the number of store per habitant for each country
+countryCode_vector = match(countriesByNumberOfStores$Country, countryData$Code)                                           
+numberOfStorePerHab = data.frame(Country=countryData[countryCode_vector,1],
+                                  NumberOfStore=countriesByNumberOfStores[,2],
+                                  Population=countryData[countryCode_vector,3])
+numberOfStorePerHab$result =1000000*(numberOfStorePerHab$NumberOfStore/numberOfStorePerHab$Population)
+
+mostStorePerHab = head(numberOfStorePerHab[order(-numberOfStorePerHab$result),],10)
+ggplot(mostStorePerHab) +
+  guides(fill=FALSE) +
+  geom_col(aes(reorder(Country, result,sum), y=result,fill=Country)) + 
+  ggtitle("Top Ten Countries with the most Starbucks Stores per million inhabitants") +
+  ylab("Number of Stores per million inhabitants") +
+  xlab("")
+
+
+#################################################################################################################################################
+#computes the number of store per habitant for each country of the top five
+countryCode_vector = match (Top5Countries_code$Country, countryData$Code)                                             
+numberOfStorePerHabTop5 = data.frame(Country=countryData[countryCode_vector,1],
+                                 NumberOfStore=Top5Countries[,2],
+                                 Population=countryData[countryCode_vector,3])
+numberOfStorePerHabTop5$result =1000000*(numberOfStorePerHabTop5$NumberOfStore/numberOfStorePerHabTop5$Population)
+
+ggplot(numberOfStorePerHabTop5) +
+  guides(fill=FALSE) +
+  geom_col(aes(reorder(Country, result,sum), y=result,fill=Country)) + 
+  ggtitle("Number of stores per million inhabitants for the top 5 countries with the most starbucks") +
+  ylab("Number of Stores per million inhabitants") +
+  xlab("")
+
+
+#################################################################################################################################################
+#computes the number of store                                           
+numberOfStoreAndGDP = data.frame(Country=countryData[countryCode_vector,1],
+                                 NumberOfStore=countriesByNumberOfStores[,2],
+                                 GDP=((countryData[countryCode_vector,9]/1000)*countryData[countryCode_vector,3])*1000)
+
+ggplot(numberOfStoreAndGDP) +
+  guides(fill=FALSE) +
+  geom_point(aes(y=NumberOfStore, x=GDP)) + 
+  ggtitle("Relationship between the total GDP and the number of stores per country") +
+  ylab("Number of stores") +
+  xlab("Total GDP")
 
 
 #################################################################################################################################################
@@ -103,9 +151,9 @@ map2 <- getMap(resolution = "high")
 plot(map2)
 points(points2$Longitude,points2$Latitude, col="green",cex=.4)
 
-#################################################################################################################################################
-# #Calcule la distance moyenne entre les Starbucks
 
+#################################################################################################################################################
+#Calcule la distance moyenne entre les Starbucks
 aux <- data.frame(Country=Top5CitiesFullData$Country, City=Top5CitiesFullData$City, Longitude = Top5CitiesFullData$Longitude,Latitude = Top5CitiesFullData$Latitude)
 aux[, 3] <- as.numeric(as.character( aux[, 3] ))
 aux[, 4] <- as.numeric(as.character( aux[, 4] ))
@@ -118,7 +166,7 @@ setDT(all_pairs)[ , dist_km := distGeo(matrix(c(Longitude, Latitude), ncol = 2),
 
 all_pairs = na.omit(all_pairs)
 all_pairs <- all_pairs[all_pairs$dist_km!=0]                                  #omit when distance is 0 (same store)
-all_pairs <- all_pairs[all_pairs$dist_km<100]                                                     #omit distances of 100 km (must be a mistake) 
+all_pairs <- all_pairs[all_pairs$dist_km<100]                                 #omit distances of 100 km (must be a mistake) 
 mean_dist = ddply(all_pairs, .(City),summarize,mean = mean(dist_km))
 
 ggplot(mean_dist) + 
